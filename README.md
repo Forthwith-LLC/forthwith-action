@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@<PINNED_SHA>
       - uses: Forthwith-LLC/forthwith-action@<PINNED_SHA>
         with:
-          cli-version: v1.0.0
+          cli-version: v1.0.1
           warnings-as-errors: "false"
 ```
 
@@ -45,7 +45,7 @@ exact tag so customers control upgrades.
 
 | Input | Default | Meaning |
 | --- | --- | --- |
-| `cli-version` | `v1.0.0` | Exact Forthwith CLI release tag. |
+| `cli-version` | `v1.0.1` | Exact Forthwith CLI release tag. |
 | `working-directory` | `.` | Project directory containing `.forthwith.yml`. |
 | `warnings-as-errors` | `false` | Fail when warnings are reported. |
 | `annotate` | `true` | Emit at most 50 workflow annotations. |

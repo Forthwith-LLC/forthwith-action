@@ -10,7 +10,7 @@ inputs:
   cli-version:
     description: Exact Forthwith CLI release tag to install (for example, v1.0.0).
     required: false
-    default: v1.0.0
+    default: v1.0.1
   working-directory:
     description: Directory containing .forthwith.yml.
     required: false
