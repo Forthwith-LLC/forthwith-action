@@ -28,7 +28,7 @@ permissions:
 jobs:
   check:
     name: Forthwith localization
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@<PINNED_SHA>
       - uses: Forthwith-LLC/forthwith-action@<PINNED_SHA>
