@@ -1,0 +1,56 @@
+name: Forthwith localization check
+description: Run Forthwith's read-only localization checks and publish GitHub-friendly results.
+author: Forthwith LLC
+
+branding:
+  icon: check-circle
+  color: purple
+
+inputs:
+  cli-version:
+    description: Exact Forthwith CLI release tag to install (for example, v1.0.0).
+    required: false
+    default: v1.0.0
+  working-directory:
+    description: Directory containing .forthwith.yml.
+    required: false
+    default: .
+  warnings-as-errors:
+    description: Treat warning diagnostics as a failing check.
+    required: false
+    default: "false"
+  annotate:
+    description: Add up to 50 file/line annotations to the workflow run.
+    required: false
+    default: "true"
+  write-summary:
+    description: Write a localization report to the GitHub step summary.
+    required: false
+    default: "true"
+
+outputs:
+  status:
+    description: Overall CLI report status.
+    value: ${{ steps.check.outputs.status }}
+  errors:
+    description: Number of error diagnostics.
+    value: ${{ steps.check.outputs.errors }}
+  warnings:
+    description: Number of warning diagnostics.
+    value: ${{ steps.check.outputs.warnings }}
+  report-path:
+    description: Absolute path to the JSON report.
+    value: ${{ steps.check.outputs.report-path }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        FORTHWITH_CLI_VERSION: ${{ inputs.cli-version }}
+        FORTHWITH_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        FORTHWITH_WARNINGS_AS_ERRORS: ${{ inputs.warnings-as-errors }}
+        FORTHWITH_ANNOTATE: ${{ inputs.annotate }}
+        FORTHWITH_WRITE_SUMMARY: ${{ inputs.write-summary }}
+      run: ${{ github.action_path }}/scripts/check.sh
