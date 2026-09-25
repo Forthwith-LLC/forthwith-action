@@ -8,7 +8,7 @@ branding:
 
 inputs:
   cli-version:
-    description: Exact Forthwith CLI release tag to install (for example, v1.0.0).
+    description: Exact Forthwith CLI release tag to install (for example, v1.0.1).
     required: false
     default: v1.0.1
   working-directory:
