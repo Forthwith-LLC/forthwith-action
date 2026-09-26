@@ -8,7 +8,7 @@ branding:
 
 inputs:
   cli-version:
-    description: Exact Forthwith CLI release tag to install (for example, v1.0.3).
+    description: Forthwith CLI release tag (for example, v1.0.3) or latest published release.
     required: false
     default: v1.0.3
   working-directory:
@@ -38,6 +38,9 @@ outputs:
   warnings:
     description: Number of warning diagnostics.
     value: ${{ steps.check.outputs.warnings }}
+  cli-version:
+    description: Exact Forthwith CLI release tag used for this check.
+    value: ${{ steps.check.outputs.cli-version }}
   report-path:
     description: Absolute path to the JSON report.
     value: ${{ steps.check.outputs.report-path }}

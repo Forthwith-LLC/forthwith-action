@@ -41,19 +41,22 @@ jobs:
       - uses: actions/checkout@<PINNED_SHA>
       - uses: Forthwith-LLC/forthwith-action@<PINNED_SHA>
         with:
-          cli-version: v1.0.3
+          cli-version: latest
           warnings-as-errors: "false"
 ```
 
 Replace both placeholders with immutable commit SHAs before using this in a
-production repository. The CLI release version is intentionally a separate,
-exact tag so customers control upgrades.
+production repository. `latest` resolves the newest published CLI release on
+each run; the job log, summary, and `cli-version` output show the exact version
+used. Set an exact tag instead if you want reproducible checks or to review CLI
+upgrades before adopting them. The paid localization PR example stays pinned
+to an exact CLI version.
 
 ## Inputs
 
 | Input | Default | Meaning |
 | --- | --- | --- |
-| `cli-version` | `v1.0.3` | Exact Forthwith CLI release tag. |
+| `cli-version` | `v1.0.3` | Exact Forthwith CLI release tag or `latest`. |
 | `working-directory` | `.` | Project directory containing `.forthwith.yml`. |
 | `warnings-as-errors` | `false` | Fail when warnings are reported. |
 | `annotate` | `true` | Emit at most 50 workflow annotations. |

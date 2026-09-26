@@ -28,15 +28,29 @@ escape_workflow_value() {
   printf '%s' "$value"
 }
 
+resolve_cli_version() {
+  local version="$1" latest_url release_prefix
+
+  if [[ "$version" == latest ]]; then
+    release_prefix="https://github.com/${release_repo}/releases/tag/"
+    latest_url="$(curl --fail --silent --show-error --location --head \
+      --retry 3 --output /dev/null --write-out '%{url_effective}' \
+      "https://github.com/${release_repo}/releases/latest")" ||
+      die "could not resolve the latest Forthwith CLI release"
+    [[ "$latest_url" == "$release_prefix"* ]] ||
+      die "latest Forthwith CLI release redirected to an unexpected URL"
+    version="${latest_url#"$release_prefix"}"
+  fi
+
+  [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+    die "cli-version must be 'latest' or an exact vX.Y.Z release tag, got '$version'"
+  printf '%s\n' "$version"
+}
+
 install_cli() {
   local version="$1"
   local install_dir="$2"
   local normalized_version archive checksums_url archive_url expected actual tmpdir
-
-  case "$version" in
-    v[0-9]*.[0-9]*.[0-9]*) ;;
-    *) die "cli-version must be an exact vX.Y.Z release tag, got '$version'" ;;
-  esac
 
   normalized_version="${version#v}"
   archive="forthwith_${normalized_version}_linux_amd64.tar.gz"
@@ -61,9 +75,12 @@ install_cli() {
 
 write_summary() {
   local report="$1"
+  local version="$2"
   local safe_message
   {
     echo "## Forthwith localization check"
+    echo
+    printf 'CLI version: %s\n' "\`$version\`"
     echo
     echo "| Result | Errors | Warnings |"
     echo "| --- | ---: | ---: |"
@@ -110,7 +127,7 @@ annotate_issues() {
 main() {
   local version="${FORTHWITH_CLI_VERSION:-}" working_directory="${FORTHWITH_WORKING_DIRECTORY:-.}"
   local warnings_as_errors="${FORTHWITH_WARNINGS_AS_ERRORS:-false}" annotate="${FORTHWITH_ANNOTATE:-true}"
-  local write_step_summary="${FORTHWITH_WRITE_SUMMARY:-true}" tool_dir report exit_code status errors warnings
+  local write_step_summary="${FORTHWITH_WRITE_SUMMARY:-true}" resolved_version tool_dir report exit_code status errors warnings
   local -a check_args=(check --json)
 
   require_boolean "$warnings_as_errors" "warnings-as-errors"
@@ -122,8 +139,10 @@ main() {
   command -v sha256sum >/dev/null || die "sha256sum is required"
   command -v jq >/dev/null || die "jq is required (it is preinstalled on GitHub-hosted Ubuntu runners)"
 
+  resolved_version="$(resolve_cli_version "$version")"
+  echo "Using Forthwith CLI ${resolved_version}"
   tool_dir="${RUNNER_TEMP:-/tmp}/forthwith-cli-${GITHUB_ACTION:-check}"
-  install_cli "$version" "$tool_dir"
+  install_cli "$resolved_version" "$tool_dir"
   report="$(mktemp "${RUNNER_TEMP:-/tmp}/forthwith-check.XXXXXX.json")"
   if [[ "$warnings_as_errors" == true ]]; then check_args+=(--warnings-as-errors); fi
 
@@ -151,13 +170,14 @@ main() {
     echo "status=$status"
     echo "errors=$errors"
     echo "warnings=$warnings"
+    echo "cli-version=$resolved_version"
     echo "report-path=$report"
   } >>"$GITHUB_OUTPUT"
 
-  if [[ "$write_step_summary" == true ]]; then write_summary "$report"; fi
+  if [[ "$write_step_summary" == true ]]; then write_summary "$report" "$resolved_version"; fi
   if [[ "$annotate" == true ]]; then annotate_issues "$report"; fi
 
   exit "$exit_code"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi
