@@ -16,3 +16,16 @@ jobs:
         run: |
           bash -n scripts/localize.sh tests/localize_test.sh
           bash tests/localize_test.sh
+      - name: Smoke-test composite entrypoint without credentials
+        id: smoke
+        uses: ./localize
+        continue-on-error: true
+        with:
+          max-strings: "1"
+        env:
+          FORTHWITH_AUTH_TOKEN: ""
+          GH_TOKEN: ""
+      - name: Assert expected credential rejection
+        env:
+          OUTCOME: ${{ steps.smoke.outcome }}
+        run: test "$OUTCOME" = failure
