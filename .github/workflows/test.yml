@@ -16,6 +16,7 @@ jobs:
         run: |
           bash -n scripts/check.sh tests/check_test.sh
           bash tests/check_test.sh
+          ruby -e 'require "yaml"; step = YAML.load_file("examples/forthwith-check.yml").fetch("jobs").fetch("check").fetch("steps").last; abort "check example must use latest" unless step.fetch("with").fetch("cli-version") == "latest"'
 
   localize:
     runs-on: ubuntu-24.04

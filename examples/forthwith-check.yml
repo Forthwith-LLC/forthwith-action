@@ -16,7 +16,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: Forthwith-LLC/forthwith-action@1f6bb16a881db57d1b41c1e36b91861f612eaeb5
+      - uses: Forthwith-LLC/forthwith-action@9c378c0066860f1227823443fab3577366e5f27a
         with:
-          cli-version: v1.0.3
+          # Use an exact vX.Y.Z tag instead if you prefer reproducible checks.
+          cli-version: latest
           warnings-as-errors: "false"
