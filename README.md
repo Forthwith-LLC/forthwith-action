@@ -4,6 +4,10 @@ This read-only GitHub Action runs `forthwith check --json`, writes a GitHub
 step summary, and adds file/line annotations for diagnostics. It never reads
 or needs `FORTHWITH_AUTH_TOKEN`; use it on pull requests, including fork PRs.
 
+For default-branch translation and a reviewable PR, use the separate
+[localization PR action](localize/README.md). It requires credentials and must
+never run on untrusted pull-request code.
+
 The action is MIT licensed. The Forthwith CLI downloaded by the action is
 separate proprietary software and remains subject to its own license.
 

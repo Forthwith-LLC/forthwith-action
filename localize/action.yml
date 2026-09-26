@@ -1,0 +1,38 @@
+name: Forthwith localization PR
+description: Translate default-branch changes and open or update one reviewable localization PR.
+author: Forthwith LLC
+
+branding:
+  icon: git-pull-request
+  color: purple
+
+inputs:
+  cli-version:
+    description: Exact Forthwith CLI release tag to install.
+    required: false
+    default: v1.0.3
+  max-strings:
+    description: Maximum distinct source strings to send for translation in one run.
+    required: true
+
+outputs:
+  status:
+    description: CLI result status (success or no_changes).
+    value: ${{ steps.localize.outputs.status }}
+  pull-request-url:
+    description: URL of the created or updated localization PR, if any.
+    value: ${{ steps.localize.outputs.pull-request-url }}
+  strings-translated:
+    description: Number of strings translated in this run.
+    value: ${{ steps.localize.outputs.strings-translated }}
+
+runs:
+  using: composite
+  steps:
+    - id: localize
+      shell: bash
+      env:
+        FORTHWITH_ACTION_PATH: ${{ github.action_path }}
+        FORTHWITH_CLI_VERSION: ${{ inputs.cli-version }}
+        FORTHWITH_MAX_STRINGS: ${{ inputs.max-strings }}
+      run: "$FORTHWITH_ACTION_PATH/../scripts/localize.sh"
