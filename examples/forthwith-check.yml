@@ -1,0 +1,22 @@
+# Save as .github/workflows/forthwith-check.yml in your repository.
+# No Forthwith account, token, or write permission is needed.
+name: Forthwith localization check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # Use this stable name if you make the check required in a ruleset.
+    name: Forthwith localization
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: Forthwith-LLC/forthwith-action@1f6bb16a881db57d1b41c1e36b91861f612eaeb5
+        with:
+          cli-version: v1.0.3
+          warnings-as-errors: "false"

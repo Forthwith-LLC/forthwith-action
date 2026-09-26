@@ -16,6 +16,7 @@ jobs:
         run: |
           bash -n scripts/localize.sh tests/localize_test.sh
           bash tests/localize_test.sh
+          ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path) }' examples/*.yml
       - name: Smoke-test composite entrypoint without credentials
         id: smoke
         uses: ./localize

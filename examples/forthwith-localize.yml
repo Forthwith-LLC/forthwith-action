@@ -1,0 +1,40 @@
+# Save as .github/workflows/forthwith-localize.yml in your repository.
+# This template starts manual-only so the first commit cannot incur translation
+# usage. After reviewing your first localization PR, uncomment the push trigger.
+# Change both references to main if your default branch has another name.
+name: Forthwith localization PR
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+
+# A newer pending run may replace an older pending run, but a translation
+# already in progress is never cancelled; API work may already be billable.
+concurrency:
+  group: forthwith-localize-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  localize:
+    # Dispatches on another branch cannot access the Forthwith token.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          # Optional fine-grained PAT lets PR checks run automatically.
+          # Without it, a maintainer approves the generated check runs.
+          token: ${{ secrets.FORTHWITH_GITHUB_TOKEN || github.token }}
+      - uses: Forthwith-LLC/forthwith-action/localize@1f6bb16a881db57d1b41c1e36b91861f612eaeb5
+        with:
+          cli-version: v1.0.3
+          # Maximum distinct source strings in one run, not a monetary cap.
+          max-strings: "100"
+        env:
+          FORTHWITH_AUTH_TOKEN: ${{ secrets.FORTHWITH_TOKEN }}
+          GH_TOKEN: ${{ secrets.FORTHWITH_GITHUB_TOKEN || github.token }}

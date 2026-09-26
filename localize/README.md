@@ -7,10 +7,12 @@ from `pull_request`, `pull_request_target`, or `workflow_run` on untrusted code.
 
 ## Setup
 
-Copy the [localization PR workflow template](https://github.com/Forthwith-LLC/forthwith-docs/blob/main/github-actions/forthwith-localize.yml)
+Copy the [public localization PR workflow template](../examples/forthwith-localize.yml)
 to `.github/workflows/forthwith-localize.yml`. Review its immutable action
 pins, set the default branch name, and choose an explicit `max-strings` value.
-Commit a valid `.forthwith.yml` at the repository root.
+Commit a valid `.forthwith.yml` at the repository root. The template starts
+with manual dispatch only; after the first PR is reviewed, uncomment its
+`push` trigger to run on subsequent default-branch changes.
 
 Add `FORTHWITH_TOKEN` as an Actions secret. This is a Forthwith API token; do
 not put it in the workflow file. The current token is user-owned. A dedicated

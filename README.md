@@ -8,6 +8,10 @@ For default-branch translation and a reviewable PR, use the separate
 [localization PR action](localize/README.md). It requires credentials and must
 never run on untrusted pull-request code.
 
+Start with the public, copyable [pull-request check workflow](examples/forthwith-check.yml)
+and [localization PR workflow](examples/forthwith-localize.yml). The localization
+example is manual-only until you opt into its commented push trigger.
+
 The action is MIT licensed. The Forthwith CLI downloaded by the action is
 separate proprietary software and remains subject to its own license.
 
