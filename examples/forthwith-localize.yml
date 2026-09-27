@@ -32,7 +32,7 @@ jobs:
           token: ${{ secrets.FORTHWITH_GITHUB_TOKEN || github.token }}
       # Opens a draft PR before paid translation and marks it ready afterward.
       # If GitHub rejects PR creation, translation never starts.
-      - uses: Forthwith-LLC/forthwith-action/localize@1f6bb16a881db57d1b41c1e36b91861f612eaeb5
+      - uses: Forthwith-LLC/forthwith-action/localize@aca9119cad0738901918995d63af64794e220606
         with:
           cli-version: v1.0.3
           # Maximum distinct source strings in one run, not a monetary cap.
