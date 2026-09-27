@@ -1,7 +1,7 @@
 # Forthwith localization PR action
 
 This companion to the [read-only check action](../README.md) runs the pinned
-Forthwith CLI on the repository's default branch, then creates or updates one
+Forthwith CLI on the repository's default branch and creates or updates one
 `forthwith/localize` pull request. It never merges the PR. Do **not** call it
 from `pull_request`, `pull_request_target`, or `workflow_run` on untrusted code.
 
@@ -23,6 +23,15 @@ or usage across target languages.
 The workflow grants only `contents: write` and `pull-requests: write`. In
 repository or organization Actions settings, allow Actions to create pull
 requests. The default `GITHUB_TOKEN` is enough to create the branch and PR.
+Before starting a potentially billable translation, the action opens a draft
+PR (or verifies it can update the existing PR) using the same GitHub token.
+If GitHub rejects PR creation, translation does not start. GitHub does not
+expose the repository setting to the workflow token through a read-only API.
+For a first run with no changes, the action uses an empty commit to open the
+draft, then replaces that commit with the translation changes; if there are
+no changes to publish, it closes the draft and removes the temporary branch.
+The temporary commit uses `[skip ci]` so it does not start redundant
+`push`/`pull_request` checks; the final commit does not skip checks.
 GitHub [runs `pull_request` checks from a `GITHUB_TOKEN`-created PR only after
 a maintainer approves them](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow).
 If the localization PR needs its read-only check to run automatically,
@@ -54,7 +63,11 @@ store a one-time installation token as a static repository secret.
   and a first-run `.forthwith.yml` `project_id` update. Unexpected files fail
   the run.
 - Opens or updates one PR, with source SHA, target languages, translated
-  count, changed files, and a machine-generated-review notice.
+  count, changed files, and a machine-generated-review notice. A new PR is
+  draft during translation and is marked ready only after the results are
+  pushed. If translation fails on an empty first run, the temporary draft is
+  closed; a pre-existing localization branch with changes or an existing PR is
+  preserved for review.
 - If some translations fail but the CLI reports usable partial results, the
   completed files are saved in the PR and the workflow fails for attention.
   CLI-level errors publish nothing.

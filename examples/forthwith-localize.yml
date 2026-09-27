@@ -30,6 +30,8 @@ jobs:
           # Optional fine-grained PAT lets PR checks run automatically.
           # Without it, a maintainer approves the generated check runs.
           token: ${{ secrets.FORTHWITH_GITHUB_TOKEN || github.token }}
+      # Opens a draft PR before paid translation and marks it ready afterward.
+      # If GitHub rejects PR creation, translation never starts.
       - uses: Forthwith-LLC/forthwith-action/localize@1f6bb16a881db57d1b41c1e36b91861f612eaeb5
         with:
           cli-version: v1.0.3

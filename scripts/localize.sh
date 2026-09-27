@@ -105,6 +105,79 @@ prepare_branch() {
   esac
 }
 
+# GitHub does not let a workflow token read the repository's Actions permission
+# setting. Opening the actual PR before the paid CLI call verifies the permission
+# with the same token that will publish the result.
+preflight_pull_request() {
+  local base="$1" pending_body="$2"
+
+  if [[ -n "$existing_pr" ]]; then
+    gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" --title "$pr_title" ||
+      die "could not update PR #$existing_pr; check pull-requests: write permissions before translating"
+    pr_url="$(gh pr view "$existing_pr" --repo "$GITHUB_REPOSITORY" --json url --jq .url)"
+    return
+  fi
+
+  if git diff --quiet "origin/$base...HEAD"; then
+    preflight_had_changes=false
+  else
+    preflight_had_changes=true
+  fi
+
+  if [[ "$(git rev-list --count "origin/$base..HEAD")" == 0 ]]; then
+    git commit --allow-empty -m 'chore(i18n): prepare localization PR [skip ci]'
+    preflight_empty_commit=true
+  fi
+
+  if [[ "$branch_existed" == true ]]; then
+    git push --force-with-lease="refs/heads/$pr_branch:$old_branch_sha" origin "HEAD:refs/heads/$pr_branch" ||
+      die "$pr_branch changed remotely or force-push is disabled; no translation job was started"
+  else
+    git push origin "HEAD:refs/heads/$pr_branch" ||
+      die "could not push $pr_branch; check contents: write permissions before translating"
+  fi
+  preflight_sha="$(git rev-parse HEAD)"
+  preflight_pushed=true
+  old_branch_sha="$preflight_sha"
+  branch_existed=true
+
+  printf 'Translation has not started. This draft PR verifies GitHub permissions and will be updated with reviewable localization changes. Do not merge it yet.\n' >"$pending_body"
+  pr_url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base "$base" --head "$pr_branch" \
+    --draft --title "$pr_title" --body-file "$pending_body")" ||
+    die "could not create a PR before translation; enable Actions PR creation or provide a token with Contents and Pull requests write permissions"
+  [[ -n "$pr_url" ]] || die "PR creation returned no URL; translation has not started"
+  pr_created_by_run=true
+}
+
+cleanup_new_preflight_pr() {
+  local remote_sha
+  remote_sha="$(git ls-remote --heads origin "refs/heads/$pr_branch" | awk '{print $1}')"
+  if [[ "$remote_sha" != "$preflight_sha" ]]; then
+    printf 'Forthwith localization: the PR branch changed remotely; leaving the draft PR for manual review.\n' >&2
+    return 1
+  fi
+  gh pr close "$pr_url" --repo "$GITHUB_REPOSITORY" --delete-branch >/dev/null || {
+    printf 'Forthwith localization: could not close the empty draft PR; please close it manually.\n' >&2
+    return 1
+  }
+}
+
+cleanup() {
+  local status=$?
+  trap - EXIT
+  if ((status != 0)) && [[ "$published" == false ]]; then
+    if [[ "$pr_created_by_run" == true && "$preflight_had_changes" == false ]]; then
+      cleanup_new_preflight_pr || true
+    elif [[ "$pr_created_by_run" == false && "$branch_was_present" == false && "$preflight_pushed" == true ]]; then
+      git push --force-with-lease="refs/heads/$pr_branch:$preflight_sha" origin ":refs/heads/$pr_branch" >/dev/null ||
+        printf 'Forthwith localization: could not remove the empty preflight branch.\n' >&2
+    fi
+  fi
+  rm -rf -- "$tool_dir"
+  rm -f -- "$report_path" "$body"
+  exit "$status"
+}
+
 read_report() {
   local report="$1" exit_code="$2"
 
@@ -208,38 +281,39 @@ write_pr_body() {
 }
 
 publish_branch_and_pr() {
-  local base="$1" body="$2" url
+  local base="$1" body="$2"
 
-  if [[ "$branch_existed" == false ]] && git diff --cached --quiet; then
+  if [[ "$pr_created_by_run" == true && "$preflight_had_changes" == false ]] &&
+    git diff --cached --quiet && git diff --quiet "origin/$base...HEAD"; then
+    cleanup_new_preflight_pr || die "the empty draft PR needs manual cleanup"
+    pr_created_by_run=false
+    pr_url=""
+    published=true
     printf 'No localization changes to publish.\n'
     return 0
   fi
 
   if ! git diff --cached --quiet; then
-    git commit -m "$pr_title"
+    if [[ "$preflight_empty_commit" == true ]]; then
+      git commit --amend -m "$pr_title"
+    else
+      git commit -m "$pr_title"
+    fi
   fi
 
-  if [[ "$branch_existed" == true ]]; then
-    if [[ "$(git rev-parse HEAD)" != "$old_branch_sha" ]]; then
-      git push --force-with-lease="refs/heads/$pr_branch:$old_branch_sha" origin "HEAD:refs/heads/$pr_branch" ||
-        die "$pr_branch changed remotely or force-push is disabled; no PR was modified"
-    fi
-  else
-    git push origin "HEAD:refs/heads/$pr_branch" ||
-      die "could not push $pr_branch; check contents: write permissions"
+  if [[ "$(git rev-parse HEAD)" != "$old_branch_sha" ]]; then
+    git push --force-with-lease="refs/heads/$pr_branch:$old_branch_sha" origin "HEAD:refs/heads/$pr_branch" ||
+      die "$pr_branch changed remotely or force-push is disabled; the draft PR was not updated"
   fi
+  published=true
 
   write_pr_body "$body" "$report_path" "$base"
-  if [[ -n "$existing_pr" ]]; then
-    gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" --title "$pr_title" --body-file "$body" ||
-      die "could not update PR #$existing_pr; check pull-requests: write permissions"
-    url="$(gh pr view "$existing_pr" --repo "$GITHUB_REPOSITORY" --json url --jq .url)"
-  else
-    url="$(gh pr create --repo "$GITHUB_REPOSITORY" --base "$base" --head "$pr_branch" \
-      --title "$pr_title" --body-file "$body")" ||
-      die "could not create a PR; allow Actions to create pull requests and grant pull-requests: write"
+  gh pr edit "$pr_url" --repo "$GITHUB_REPOSITORY" --title "$pr_title" --body-file "$body" ||
+    die "could not update $pr_url; check pull-requests: write permissions"
+  if [[ "$pr_created_by_run" == true ]]; then
+    gh pr ready "$pr_url" --repo "$GITHUB_REPOSITORY" ||
+      die "could not mark $pr_url ready; the translations are saved in its draft PR"
   fi
-  pr_url="$url"
   printf 'Localization PR: %s\n' "$pr_url"
 }
 
@@ -263,16 +337,25 @@ main() {
     die "this secret-bearing workflow must run on the repository default branch"
 
   branch_existed=false
+  branch_was_present=false
   existing_pr=""
   old_branch_sha=""
   pr_url=""
+  pr_created_by_run=false
+  preflight_empty_commit=false
+  preflight_had_changes=false
+  preflight_pushed=false
+  preflight_sha=""
+  published=false
   prepare_branch "$base"
+  branch_was_present="$branch_existed"
 
   tool_dir="$(mktemp -d "${RUNNER_TEMP:-/tmp}/forthwith-cli.XXXXXX")"
   report_path="$(mktemp "${RUNNER_TEMP:-/tmp}/forthwith-localize.XXXXXX")"
   body="$(mktemp "${RUNNER_TEMP:-/tmp}/forthwith-pr-body.XXXXXX")"
-  trap 'rm -rf -- "$tool_dir"; rm -f -- "$report_path" "$body"' EXIT
+  trap cleanup EXIT
   install_cli "$version" "$tool_dir"
+  preflight_pull_request "$base" "$body"
 
   set +e
   "$tool_dir/forthwith" translate --json --yes --force --max-strings="$max_strings" >"$report_path"
