@@ -62,6 +62,35 @@ to an exact CLI version.
 | `annotate` | `true` | Emit at most 50 workflow annotations. |
 | `write-summary` | `true` | Add the complete report to the job summary. |
 
+Outputs include `status`, `errors`, `warnings`, `cli-version`, `report-path`,
+and `sarif-path`.
+
+The action also writes a SARIF 2.1.0 report and exposes its absolute path as
+the `sarif-path` output. To publish diagnostics in GitHub code scanning, add
+the upload step below and grant `security-events: write` to the workflow. The
+upload step is optional; keeping the default workflow at `contents: read`
+preserves its least-privilege, fork-PR setup.
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+
+steps:
+  - uses: actions/checkout@<PINNED_SHA>
+  - id: forthwith
+    uses: Forthwith-LLC/forthwith-action@<PINNED_SHA>
+  - if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+    uses: github/codeql-action/upload-sarif@<PINNED_SHA>
+    with:
+      sarif_file: ${{ steps.forthwith.outputs.sarif-path }}
+```
+
+GitHub may reject code-scanning uploads from fork pull requests because the
+workflow token is read-only there. Keep the ordinary check and annotations as
+the fork-safe feedback path; enable SARIF upload where the repository's
+permissions and code-scanning configuration allow it.
+
 The action currently supports GitHub-hosted Linux x64 runners. It downloads
 the matching release archive and verifies it against that release's
 `checksums.txt` before execution.

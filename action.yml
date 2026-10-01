@@ -44,6 +44,9 @@ outputs:
   report-path:
     description: Absolute path to the JSON report.
     value: ${{ steps.check.outputs.report-path }}
+  sarif-path:
+    description: Absolute path to the SARIF 2.1.0 report for optional GitHub code scanning upload.
+    value: ${{ steps.check.outputs.sarif-path }}
 
 runs:
   using: composite

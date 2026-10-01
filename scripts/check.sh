@@ -100,6 +100,27 @@ write_summary() {
   } >>"$GITHUB_STEP_SUMMARY"
 }
 
+write_sarif() {
+  local report="$1" output="$2"
+  jq '{
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    version: "2.1.0",
+    runs: [{
+      tool: { driver: {
+        name: "Forthwith",
+        informationUri: "https://forthwith.io",
+        rules: ([.issues[]? | .code // "unknown" | select(. != "")] | unique | map({id: ., shortDescription: {text: .}}))
+      }},
+      results: [.issues[]? | {
+        ruleId: (.code // "unknown"),
+        level: (if .severity == "error" then "error" elif .severity == "warning" then "warning" else "note" end),
+        message: {text: (.message // "Localization issue")},
+        locations: (if ((.file // .source_file // "") != "") then [{physicalLocation: ({artifactLocation: {uri: (.file // .source_file)}} + (if ((.line // 0) > 0) then {region: {startLine: .line}} else {} end))}] else [] end)
+      }]
+    }]
+  }' "$report" >"$output"
+}
+
 annotate_issues() {
   local report="$1"
   local count=0 severity file line message command
@@ -127,7 +148,7 @@ annotate_issues() {
 main() {
   local version="${FORTHWITH_CLI_VERSION:-}" working_directory="${FORTHWITH_WORKING_DIRECTORY:-.}"
   local warnings_as_errors="${FORTHWITH_WARNINGS_AS_ERRORS:-false}" annotate="${FORTHWITH_ANNOTATE:-true}"
-  local write_step_summary="${FORTHWITH_WRITE_SUMMARY:-true}" resolved_version tool_dir report exit_code status errors warnings
+  local write_step_summary="${FORTHWITH_WRITE_SUMMARY:-true}" resolved_version tool_dir report sarif exit_code status errors warnings
   local -a check_args=(check --json)
 
   require_boolean "$warnings_as_errors" "warnings-as-errors"
@@ -166,12 +187,15 @@ main() {
   status="$(jq -r '.status' "$report")"
   errors="$(jq -r '.summary.errors // 0' "$report")"
   warnings="$(jq -r '.summary.warnings // 0' "$report")"
+  sarif="${report%.json}.sarif"
+  write_sarif "$report" "$sarif"
   {
     echo "status=$status"
     echo "errors=$errors"
     echo "warnings=$warnings"
     echo "cli-version=$resolved_version"
     echo "report-path=$report"
+    echo "sarif-path=$sarif"
   } >>"$GITHUB_OUTPUT"
 
   if [[ "$write_step_summary" == true ]]; then write_summary "$report" "$resolved_version"; fi
