@@ -56,7 +56,7 @@ to an exact CLI version.
 
 | Input | Default | Meaning |
 | --- | --- | --- |
-| `cli-version` | `v1.0.3` | Exact Forthwith CLI release tag or `latest`. |
+| `cli-version` | `v1.0.4` | Exact Forthwith CLI release tag or `latest`. |
 | `working-directory` | `.` | Project directory containing `.forthwith.yml`. |
 | `warnings-as-errors` | `false` | Fail when warnings are reported. |
 | `annotate` | `true` | Emit at most 50 workflow annotations. |

@@ -8,9 +8,9 @@ branding:
 
 inputs:
   cli-version:
-    description: Forthwith CLI release tag (for example, v1.0.3) or latest published release.
+    description: Forthwith CLI release tag (for example, v1.0.4) or latest published release.
     required: false
-    default: v1.0.3
+    default: v1.0.4
   working-directory:
     description: Directory containing .forthwith.yml.
     required: false
