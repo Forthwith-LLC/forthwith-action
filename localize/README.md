@@ -14,11 +14,28 @@ Commit a valid `.forthwith.yml` at the repository root. The template starts
 with manual dispatch only; after the first PR is reviewed, uncomment its
 `push` trigger to run on subsequent default-branch changes.
 
-Add `FORTHWITH_TOKEN` as an Actions secret. This is a Forthwith API token; do
-not put it in the workflow file. The current token is user-owned. A dedicated
-automation identity and server-side budget controls are planned separately.
-The `max-strings` input limits distinct source entries per run, **not** cost
-or usage across target languages.
+Ask an organization owner to create a service token under **API Access**. Select
+`translate`; the form also selects the required `read_usage` permission. Bind
+the token to the `project_id` in the committed `.forthwith.yml`, choose an
+expiration (1–365 days), and set a monthly word budget. Add the one-time
+displayed token as the `FORTHWITH_TOKEN` Actions secret; do not put it in the
+workflow file. Rotation immediately invalidates the previous token and starts
+a new expiration period of the same length. Update the secret before the next
+run.
+Revocation is final: the account remains visible for audit history, and a new
+service token is required to restore access.
+The server counts reserved source and instruction words across jobs created by
+this service identity during each UTC calendar month. Failed, cancelled, and
+expired jobs release their reservation. The `max-strings` input is an additional
+per-run guardrail; it limits distinct source entries, **not** cost or usage
+across target languages.
+
+The server records the service identity on every translation job. CLI v1.0.4
+sends the GitHub repository, run ID and URL, and commit SHA from the workflow
+environment. The public template pins v1.0.4 after a successful manual test
+against a configured project. The GitHub metadata is audit context, not proof
+that GitHub authenticated the request. Keep the service token secret and use
+the default-branch workflow only.
 
 The workflow grants only `contents: write` and `pull-requests: write`. In
 repository or organization Actions settings, allow Actions to create pull

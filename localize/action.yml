@@ -10,7 +10,7 @@ inputs:
   cli-version:
     description: Exact Forthwith CLI release tag to install.
     required: false
-    default: v1.0.3
+    default: v1.0.4
   max-strings:
     description: Maximum distinct source strings to send for translation in one run.
     required: true
